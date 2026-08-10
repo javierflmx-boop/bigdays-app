@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Big Days">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Big Days</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#0A0A0A;
+    --cream:#F5F0E8;
+    --mango:#F5A623;
+    --build:#7C9885;
+    --craft:#C9A15A;
+    --outdoor:#6B8E5A;
+    --birthday:#E8927C;
+    --trip:#6FA8B5;
+    --pool:#4FB6C9;
+    --park:#9BC46A;
+    --other:#B8A8D9;
+    --line:rgba(255,255,255,0.08);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:var(--black);color:var(--cream);font-family:'Montserrat',sans-serif;font-weight:300;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+  #root{max-width:520px;margin:0 auto;min-height:100vh;position:relative;display:flex;flex-direction:column;}
+  a{color:inherit;}
+
+  .brand{font-family:'Playfair Display',serif;font-size:22px;font-weight:500;letter-spacing:0.02em;}
+  .brand .dot{color:var(--mango);}
+  .field-label{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(245,240,232,0.45);margin:14px 0 6px;}
+  .field-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:10px;padding:13px 14px;color:var(--cream);font-size:14px;font-family:'Montserrat',sans-serif;font-weight:300;}
+  .field-input:focus{outline:none;border-color:var(--mango);}
+  .btn{padding:14px;border-radius:100px;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;border:none;cursor:pointer;font-weight:600;}
+  .btn-cancel{background:none;border:1px solid var(--line);color:rgba(245,240,232,0.6);}
+  .btn-save{background:var(--mango);color:var(--black);}
+  .btn-full{width:100%;}
+  .err{font-size:11px;color:#E8927C;margin-top:10px;}
+  .hint{font-size:10.5px;color:rgba(245,240,232,0.4);margin-top:8px;line-height:1.5;}
+
+  .auth-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;padding:32px 28px;}
+  .auth-brand{font-family:'Playfair Display',serif;font-size:34px;text-align:center;margin-bottom:6px;}
+  .auth-sub{text-align:center;font-size:12px;color:rgba(245,240,232,0.45);margin-bottom:32px;letter-spacing:0.02em;}
+  .auth-tabs{display:flex;gap:8px;margin-bottom:20px;background:rgba(255,255,255,0.03);border-radius:100px;padding:4px;}
+  .auth-tab{flex:1;text-align:center;padding:10px;border-radius:100px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;color:rgba(245,240,232,0.5);}
+  .auth-tab.active{background:var(--mango);color:var(--black);font-weight:600;}
+
+  .topbar{padding:24px 24px 8px;display:flex;align-items:center;justify-content:space-between;}
+  .topbar-actions{display:flex;gap:8px;align-items:center;}
+  .icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,0.02);color:var(--cream);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;}
+
+  .hero{margin:16px 24px 8px;padding:36px 28px;border-radius:20px;background:linear-gradient(160deg, rgba(245,166,35,0.10), rgba(255,255,255,0.02));border:1px solid var(--line);}
+  .hero-eyebrow{font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:rgba(245,240,232,0.45);margin-bottom:14px;}
+  .hero-num-row{display:flex;align-items:baseline;gap:10px;}
+  .hero-num{font-family:'Playfair Display',serif;font-weight:500;font-size:84px;line-height:0.85;color:var(--cream);}
+  .hero-num-label{font-size:13px;letter-spacing:0.05em;color:rgba(245,240,232,0.55);padding-bottom:8px;}
+  .hero-rule{width:40px;height:2px;background:var(--mango);margin:16px 0 14px;}
+  .hero-title{font-family:'Playfair Display',serif;font-size:23px;font-weight:500;margin-bottom:6px;}
+  .hero-date{font-size:12px;color:rgba(245,240,232,0.5);letter-spacing:0.03em;}
+  .hero-owner{font-size:11px;color:var(--mango);margin-top:6px;}
+  .hero-link{display:inline-block;margin-top:14px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--mango);text-decoration:none;font-weight:500;}
+  .hero-empty{font-family:'Playfair Display',serif;font-size:19px;color:rgba(245,240,232,0.6);padding:16px 0;}
+
+  .filters{display:flex;gap:8px;padding:20px 24px 4px;overflow-x:auto;scrollbar-width:none;}
+  .filters::-webkit-scrollbar{display:none;}
+  .filter-chip{flex-shrink:0;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 16px;border-radius:100px;border:1px solid var(--line);background:none;color:rgba(245,240,232,0.6);cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .filter-chip .fdot{width:6px;height:6px;border-radius:50%;}
+  .filter-chip.active{background:rgba(245,240,232,0.08);color:var(--cream);border-color:rgba(245,240,232,0.25);}
+
+  .list{padding:16px 24px 120px;display:flex;flex-direction:column;gap:10px;flex:1;}
+  .section-label{font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(245,240,232,0.35);margin:18px 0 4px;}
+  .card{display:flex;align-items:center;gap:14px;padding:16px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,0.02);}
+  .card-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .card-body{flex:1;min-width:0;}
+  .card-title{font-size:14.5px;color:var(--cream);}
+  .card-date{font-size:11px;color:rgba(245,240,232,0.45);margin-top:2px;}
+  .card-owner{font-size:10.5px;color:var(--mango);margin-top:2px;}
+  .card-link{color:var(--mango);text-decoration:none;}
+  .card-days{font-family:'Playfair Display',serif;font-size:20px;color:var(--mango);flex-shrink:0;text-align:right;}
+  .card-days-label{font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(245,240,232,0.4);text-align:right;}
+  .card-del{background:none;border:none;color:rgba(245,240,232,0.3);font-size:18px;padding:4px 6px;cursor:pointer;flex-shrink:0;}
+  .empty-state{text-align:center;padding:60px 20px;color:rgba(245,240,232,0.4);font-size:13px;}
+
+  .bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:rgba(10,10,10,0.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;padding:10px 24px calc(10px + env(safe-area-inset-bottom));}
+  .nav-item{flex:1;text-align:center;padding:8px;color:rgba(245,240,232,0.4);cursor:pointer;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;position:relative;}
+  .nav-item.active{color:var(--mango);}
+  .badge{position:absolute;top:-2px;right:28%;width:15px;height:15px;border-radius:50%;background:var(--mango);color:var(--black);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+  .fab{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);width:calc(100% - 48px);max-width:472px;background:var(--mango);color:var(--black);border:none;border-radius:100px;padding:16px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;cursor:pointer;box-shadow:0 10px 30px rgba(245,166,35,0.25);}
+
+  .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;justify-content:center;z-index:50;}
+  .sheet{width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:#141414;border-radius:24px 24px 0 0;padding:28px 24px 32px;border:1px solid var(--line);border-bottom:none;}
+  .sheet-title{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:6px;}
+  .sheet-sub{font-size:11px;color:rgba(245,240,232,0.4);margin-bottom:14px;}
+  .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:2px;}
+  .cat-pick{padding:10px 4px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,0.02);cursor:pointer;text-align:center;font-size:9px;letter-spacing:0.03em;color:rgba(245,240,232,0.55);}
+  .cat-pick.sel{border-color:var(--mango);color:var(--cream);background:rgba(245,166,35,0.08);}
+  .cat-pick .cdot{width:8px;height:8px;border-radius:50%;margin:0 auto 5px;}
+  .vis-row{display:flex;gap:8px;margin-top:2px;}
+  .vis-pick{flex:1;padding:12px 4px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,0.02);cursor:pointer;text-align:center;font-size:10px;color:rgba(245,240,232,0.55);}
+  .vis-pick.sel{border-color:var(--mango);color:var(--cream);background:rgba(245,166,35,0.08);}
+  .sheet-actions{display:flex;gap:10px;margin-top:22px;}
+  .sheet-actions .btn{flex:1;}
+
+  .friends-wrap{padding:8px 24px 120px;}
+  .friend-card{display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,0.02);margin-bottom:8px;}
+  .avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:15px;color:var(--black);flex-shrink:0;}
+  .friend-name{font-size:14px;color:var(--cream);}
+  .friend-username{font-size:11px;color:rgba(245,240,232,0.4);}
+  .friend-action{margin-left:auto;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;padding:8px 14px;border-radius:100px;cursor:pointer;font-weight:600;}
+  .friend-action.add{background:var(--mango);color:var(--black);}
+  .friend-action.pending{background:none;border:1px solid var(--line);color:rgba(245,240,232,0.4);cursor:default;}
+  .friend-action.accept{background:var(--mango);color:var(--black);}
+
+  .loading-screen{flex:1;display:flex;align-items:center;justify-content:center;color:rgba(245,240,232,0.4);font-size:12px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<script type="text/babel">
+const {useState, useEffect, useMemo, useCallback} = React;
+
+// ====== FILL THESE IN FROM YOUR SUPABASE PROJECT (Settings > API) ======
+const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+// =========================================================================
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const CATS = {
+  build:    {label:"Build Day", color:"var(--build)"},
+  craft:    {label:"Craft Day", color:"var(--craft)"},
+  outdoor:  {label:"Outdoor Day", color:"var(--outdoor)"},
+  birthday: {label:"Birthday",  color:"var(--birthday)"},
+  trip:     {label:"Trip",      color:"var(--trip)"},
+  pool:     {label:"Pool Day",  color:"var(--pool)"},
+  park:     {label:"Park Day",  color:"var(--park)"},
+  other:    {label:"Big Day",   color:"var(--other)"},
+};
+const AVATAR_COLORS = ["#F5A623","#7C9885","#E8927C","#6FA8B5","#C9A15A","#B8A8D9"];
+
+const HD_LINK = "https://www.homedepot.com/workshops/kids";
+const LOWES_LINK = "https://www.lowes.com/diy-projects-and-ideas/workshops";
+const MICHAELS_LINK = "https://www.michaels.com/kids-club";
+const LEGO_LINK = "https://www.lego.com/en-us/stores/events";
+const BASSPRO_LINK = "https://www.basspro.com/shop/en/family-events";
+const BASSPRO_SEASONS = [
+  {title:"Bass Pro Shops Spring Classic \u2014 free kids fishing weekend", month:2, day:15},
+  {title:"Bass Pro Shops Family Summer Event \u2014 free kids workshops", month:5, day:22},
+  {title:"Bass Pro Shops Fall Hunting Classic \u2014 free youth event", month:7, day:25},
+];
+
+function firstSaturday(year, monthIndex0){
+  const d = new Date(year, monthIndex0, 1);
+  d.setDate(1 + (6 - d.getDay() + 7) % 7);
+  return d;
+}
+function nextSunday(fromDate){
+  const d = new Date(fromDate);
+  d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7));
+  return d;
+}
+function nextOccurrence(month, day){
+  const now = new Date(); now.setHours(0,0,0,0);
+  let d = new Date(now.getFullYear(), month, day);
+  if (d < now) d = new Date(now.getFullYear() + 1, month, day);
+  return d;
+}
+function toISO(d){ return d.toISOString().slice(0,10); }
+function daysUntil(dateStr){
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((new Date(dateStr + "T00:00:00") - today) / 86400000);
+}
+function fmtDate(dateStr){
+  return new Date(dateStr + "T00:00:00").toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+}
+function slugUsername(s){
+  return s.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+function pinToPassword(username, pin){
+  return `bd-${username}-${pin}`;
+}
+function generateAutoEvents(monthsAhead = 6){
+  const out = [];
+  const now = new Date();
+  for (let i = 0; i < monthsAhead; i++){
+    const y = now.getFullYear(), m = now.getMonth() + i;
+    const hd = firstSaturday(y, m);
+    out.push({id:`hd-${hd.getFullYear()}-${hd.getMonth()}`, title:"Home Depot Kids Workshop", date:toISO(hd), cat:"build", link:HD_LINK, auto:true});
+    const lw = new Date(y, m, 1);
+    out.push({id:`lw-${lw.getFullYear()}-${lw.getMonth()}`, title:"Lowe's Kids Workshop \u2014 check this month's date", date:toISO(lw), cat:"build", link:LOWES_LINK, auto:true});
+    const lg = new Date(y, m, 2);
+    out.push({id:`lg-${lg.getFullYear()}-${lg.getMonth()}`, title:"LEGO Store Mini Build \u2014 check this month's date", date:toISO(lg), cat:"build", link:LEGO_LINK, auto:true});
+  }
+  let cursor = new Date();
+  for (let w = 0; w < 8; w++){
+    const sun = nextSunday(cursor);
+    out.push({id:`mi-${toISO(sun)}`, title:"Michaels Kids Club \u2014 craft day", date:toISO(sun), cat:"craft", link:MICHAELS_LINK, auto:true});
+    cursor = sun;
+  }
+  BASSPRO_SEASONS.forEach(s => {
+    const d = nextOccurrence(s.month, s.day);
+    out.push({id:`bp-${d.getFullYear()}-${s.month}`, title:s.title + " \u2014 check exact dates", date:toISO(d), cat:"outdoor", link:BASSPRO_LINK, auto:true});
+  });
+  return out;
+}
+
+function AuthScreen(){
+  const [tab, setTab] = useState('login');
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [pin, setPin] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleCreate(){
+    setError('');
+    const uname = slugUsername(username || displayName);
+    if (!displayName.trim() || !uname || pin.length < 4){ setError('Enter your name, a username, and a 4-digit PIN.'); return; }
+    setBusy(true);
+    try{
+      const {data: existing} = await supabase.from('profiles').select('id').eq('username', uname).maybeSingle();
+      if (existing){ setError('That username is taken \u2014 try another.'); setBusy(false); return; }
+      const email = `${uname}@bigdays.local`;
+      const password = pinToPassword(uname, pin);
+      const {data: signUpData, error: signUpErr} = await supabase.auth.signUp({email, password});
+      if (signUpErr) throw signUpErr;
+      const userId = signUpData.user?.id;
+      if (!userId) throw new Error('Could not create account.');
+      const color = AVATAR_COLORS[Math.floor(Math.random()*AVATAR_COLORS.length)];
+      const {error: profErr} = await supabase.from('profiles').insert({id:userId, username:uname, display_name:displayName.trim(), avatar_color:color});
+      if (profErr) throw profErr;
+    }catch(e){ setError(e.message || 'Something went wrong.'); }
+    setBusy(false);
+  }
+
+  async function handleLogin(){
+    setError('');
+    const uname = slugUsername(username);
+    if (!uname || pin.length < 4){ setError('Enter your username and PIN.'); return; }
+    setBusy(true);
+    try{
+      const email = `${uname}@bigdays.local`;
+      const password = pinToPassword(uname, pin);
+      const {error: loginErr} = await supabase.auth.signInWithPassword({email, password});
+      if (loginErr) throw new Error('Username or PIN not right \u2014 try again.');
+    }catch(e){ setError(e.message); }
+    setBusy(false);
+  }
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-brand">big<span style={{color:'var(--mango)'}}>.</span>days</div>
+      <div className="auth-sub">A calendar for the days worth counting down to</div>
+      <div className="auth-tabs">
+        <div className={"auth-tab" + (tab==='login'?' active':'')} onClick={()=>{setTab('login');setError('');}}>Log In</div>
+        <div className={"auth-tab" + (tab==='create'?' active':'')} onClick={()=>{setTab('create');setError('');}}>New Here</div>
+      </div>
+
+      {tab === 'create' && (
+        <React.Fragment>
+          <div className="field-label">Your name</div>
+          <input className="field-input" placeholder="e.g. Sofia" value={displayName} onChange={e=>setDisplayName(e.target.value)} />
+        </React.Fragment>
+      )}
+
+      <div className="field-label">Username (no spaces)</div>
+      <input className="field-input" placeholder="e.g. sofia407" value={username} onChange={e=>setUsername(e.target.value.replace(/\s/g,''))} />
+
+      <div className="field-label">4-digit PIN</div>
+      <input className="field-input" type="tel" inputMode="numeric" maxLength="6" placeholder="1234" value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,''))} />
+
+      {error && <div className="err">{error}</div>}
+
+      <button className="btn btn-save btn-full" style={{marginTop:20}} disabled={busy} onClick={tab==='create'?handleCreate:handleLogin}>
+        {busy ? "One sec..." : (tab==='create' ? "Create my calendar" : "Log in")}
+      </button>
+      <div className="hint">Ask a parent before sharing your username with friends. No email needed \u2014 just your name and PIN.</div>
+    </div>
+  );
+}
+
+function AddEventSheet({onClose, onSave}){
+  const [form, setForm] = useState({title:'', date:'', cat:'birthday', visibility:'private'});
+  return (
+    <div className="sheet-overlay" onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
+      <div className="sheet">
+        <div className="sheet-title">New big day</div>
+        <div className="sheet-sub">Birthdays, Disney Day, pool day \u2014 anything worth counting down to.</div>
+
+        <div className="field-label">What is it?</div>
+        <input className="field-input" placeholder="e.g. Disney Day" value={form.title} onChange={e=>setForm({...form, title:e.target.value})} />
+
+        <div className="field-label">When?</div>
+        <input className="field-input" type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} />
+
+        <div className="field-label">Type</div>
+        <div className="cat-grid">
+          {Object.entries(CATS).map(([key,c]) => (
+            <div key={key} className={"cat-pick" + (form.cat===key?' sel':'')} onClick={()=>setForm({...form, cat:key})}>
+              <div className="cdot" style={{background:c.color}}></div>{c.label}
+            </div>
+          ))}
+        </div>
+
+        <div className="field-label">Who can see it?</div>
+        <div className="vis-row">
+          <div className={"vis-pick" + (form.visibility==='private'?' sel':'')} onClick={()=>setForm({...form, visibility:'private'})}>Just me</div>
+          <div className={"vis-pick" + (form.visibility==='friends'?' sel':'')} onClick={()=>setForm({...form, visibility:'friends'})}>My friends too</div>
+        </div>
+
+        <div className="sheet-actions">
+          <button className="btn btn-cancel" onClick={onClose}>Cancel</button>
+          <button className="btn btn-save" onClick={()=>{ if(form.title.trim() && form.date) onSave(form); }}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FriendsScreen({me, friendships, onSearchResults, onSendRequest, onRespond}){
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+
+  async function runSearch(q){
+    setQuery(q);
+    if (q.trim().length < 2){ setResults([]); return; }
+    setResults(await onSearchResults(q));
+  }
+
+  const incoming = friendships.filter(f => f.status==='pending' && f.addressee_id===me.id);
+  const outgoing = friendships.filter(f => f.status==='pending' && f.requester_id===me.id);
+  const accepted = friendships.filter(f => f.status==='accepted');
+
+  function statusFor(profileId){
+    return friendships.find(f => (f.requester_id===me.id && f.addressee_id===profileId) || (f.addressee_id===me.id && f.requester_id===profileId)) || null;
+  }
+
+  return (
+    <div className="friends-wrap">
+      <div className="field-label">Add a friend by username</div>
+      <input className="field-input" placeholder="Search username..." value={query} onChange={e=>runSearch(e.target.value)} />
+
+      {results.length > 0 && (
+        <div style={{marginTop:14}}>
+          {results.map(r => {
+            const f = statusFor(r.id);
+            return (
+              <div className="friend-card" key={r.id}>
+                <div className="avatar" style={{background:r.avatar_color}}>{r.display_name[0]}</div>
+                <div><div className="friend-name">{r.display_name}</div><div className="friend-username">@{r.username}</div></div>
+                {!f && <div className="friend-action add" onClick={()=>onSendRequest(r.id)}>Add</div>}
+                {f && f.status==='pending' && <div className="friend-action pending">Pending</div>}
+                {f && f.status==='accepted' && <div className="friend-action pending">Friends</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {incoming.length > 0 && (
+        <React.Fragment>
+          <div className="section-label">Friend requests</div>
+          {incoming.map(f => (
+            <div className="friend-card" key={f.id}>
+              <div className="avatar" style={{background:f.requester.avatar_color}}>{f.requester.display_name[0]}</div>
+              <div><div className="friend-name">{f.requester.display_name}</div><div className="friend-username">@{f.requester.username}</div></div>
+              <div className="friend-action accept" onClick={()=>onRespond(f.id)}>Accept</div>
+            </div>
+          ))}
+        </React.Fragment>
+      )}
+
+      <div className="section-label">Your friends</div>
+      {accepted.length === 0 && outgoing.length === 0 && <div className="empty-state">Search a username above to add your first friend.</div>}
+      {accepted.map(f => {
+        const other = f.requester_id === me.id ? f.addressee : f.requester;
+        return (
+          <div className="friend-card" key={f.id}>
+            <div className="avatar" style={{background:other.avatar_color}}>{other.display_name[0]}</div>
+            <div><div className="friend-name">{other.display_name}</div><div className="friend-username">@{other.username}</div></div>
+          </div>
+        );
+      })}
+      {outgoing.map(f => (
+        <div className="friend-card" key={f.id}>
+          <div className="avatar" style={{background:f.addressee.avatar_color}}>{f.addressee.display_name[0]}</div>
+          <div><div className="friend-name">{f.addressee.display_name}</div><div className="friend-username">@{f.addressee.username}</div></div>
+          <div className="friend-action pending">Requested</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function App(){
+  const [session, setSession] = useState(undefined);
+  const [me, setMe] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [friendships, setFriendships] = useState([]);
+  const [view, setView] = useState('calendar');
+  const [filter, setFilter] = useState('all');
+  const [showAdd, setShowAdd] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+
+  const autoEvents = useMemo(() => generateAutoEvents(6), []);
+
+  const loadEverything = useCallback(async (userId) => {
+    const {data: profile} = await supabase.from('profiles').select('*').eq('id', userId).single();
+    setMe(profile);
+    const {data: ev} = await supabase.from('events').select('*, profiles:owner_id(display_name)').order('event_date');
+    setEvents(ev || []);
+    const {data: fr} = await supabase.from('friendships').select('*, requester:requester_id(id,username,display_name,avatar_color), addressee:addressee_id(id,username,display_name,avatar_color)');
+    setFriendships(fr || []);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({data:{session}}) => {
+      setSession(session);
+      if (session) loadEverything(session.user.id);
+    });
+    const {data: sub} = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess);
+      if (sess) loadEverything(sess.user.id);
+      if (!sess) { setMe(null); setEvents([]); setFriendships([]); }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [loadEverything]);
+
+  async function handleAddEvent(form){
+    const {data, error} = await supabase.from('events').insert({
+      owner_id: me.id, title: form.title.trim(), event_date: form.date, category: form.cat, visibility: form.visibility
+    }).select('*, profiles:owner_id(display_name)').single();
+    if (!error && data) setEvents(prev => [...prev, data]);
+    setShowAdd(false);
+  }
+  async function handleRemoveEvent(id){
+    await supabase.from('events').delete().eq('id', id);
+    setEvents(prev => prev.filter(e => e.id !== id));
+  }
+  async function handleSendRequest(targetId){
+    const {data} = await supabase.from('friendships').insert({requester_id: me.id, addressee_id: targetId, status:'pending'})
+      .select('*, requester:requester_id(id,username,display_name,avatar_color), addressee:addressee_id(id,username,display_name,avatar_color)').single();
+    if (data) setFriendships(prev => [...prev, data]);
+  }
+  async function handleRespond(friendshipId){
+    await supabase.from('friendships').update({status:'accepted'}).eq('id', friendshipId);
+    setFriendships(prev => prev.map(f => f.id===friendshipId ? {...f, status:'accepted'} : f));
+  }
+  async function handleSearch(q){
+    const {data} = await supabase.from('profiles').select('id,username,display_name,avatar_color').ilike('username', `%${slugUsername(q)}%`).neq('id', me.id).limit(8);
+    return data || [];
+  }
+  async function handleLogout(){ await supabase.auth.signOut(); }
+
+  const upcoming = useMemo(() => {
+    const normalized = events.map(e => ({
+      id:e.id, title:e.title, date:e.event_date, cat:e.category, visibility:e.visibility,
+      isMine: e.owner_id === me?.id, ownerName: e.profiles?.display_name, dbId:e.id,
+    }));
+    const all = [...normalized, ...autoEvents];
+    return all.filter(e => daysUntil(e.date) >= 0).filter(e => filter==='all' || e.cat===filter).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  }, [events, autoEvents, filter, me]);
+
+  const next = upcoming[0];
+  const rest = upcoming.slice(1);
+  const incomingCount = friendships.filter(f => f.status==='pending' && f.addressee_id===me?.id).length;
+
+  if (session === undefined) return <div className="loading-screen">Loading...</div>;
+  if (!session) return <AuthScreen />;
+  if (!me) return <div className="loading-screen">Loading your calendar...</div>;
+
+  return (
+    <React.Fragment>
+      <div className="topbar">
+        <div className="brand">big<span className="dot">.</span>days</div>
+        <div className="topbar-actions">
+          <div className="icon-btn" onClick={()=>setEditMode(!editMode)} style={editMode?{background:'var(--mango)',color:'var(--black)'}:{}}>{editMode?'\u2713':'\u270e'}</div>
+          <div className="icon-btn" onClick={handleLogout}>\u21a9</div>
+        </div>
+      </div>
+
+      {view === 'calendar' && (
+        <React.Fragment>
+          <div className="hero">
+            {next ? (
+              <React.Fragment>
+                <div className="hero-eyebrow">Coming up</div>
+                <div className="hero-num-row">
+                  <div className="hero-num">{daysUntil(next.date)}</div>
+                  <div className="hero-num-label">day{daysUntil(next.date)===1?'':'s'} away</div>
+                </div>
+                <div className="hero-rule"></div>
+                <div className="hero-title">{next.title}</div>
+                <div className="hero-date">{fmtDate(next.date)}</div>
+                {!next.isMine && next.ownerName && <div className="hero-owner">{next.ownerName}'s day</div>}
+                {next.link && <a className="hero-link" href={next.link} target="_blank" rel="noopener noreferrer">Register &rarr;</a>}
+              </React.Fragment>
+            ) : <div className="hero-empty">Nothing on the calendar yet.</div>}
+          </div>
+
+          <div className="filters">
+            <button className={"filter-chip"+(filter==='all'?' active':'')} onClick={()=>setFilter('all')}>All</button>
+            {Object.entries(CATS).map(([key,c]) => (
+              <button key={key} className={"filter-chip"+(filter===key?' active':'')} onClick={()=>setFilter(key)}>
+                <span className="fdot" style={{background:c.color}}></span>{c.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="list">
+            {rest.length===0 && !next && <div className="empty-state">Tap "Add a big day" to get started.</div>}
+            {rest.length > 0 && <div className="section-label">Also coming up</div>}
+            {rest.map(e => {
+              const d = daysUntil(e.date);
+              return (
+                <div className="card" key={e.id}>
+                  <span className="card-dot" style={{background:CATS[e.cat].color}}></span>
+                  <div className="card-body">
+                    <div className="card-title">{e.title}</div>
+                    <div className="card-date">
+                      {fmtDate(e.date)}
+                      {e.link && <a className="card-link" href={e.link} target="_blank" rel="noopener noreferrer"> &middot; Register</a>}
+                    </div>
+                    {!e.isMine && e.ownerName && <div className="card-owner">{e.ownerName}'s day</div>}
+                  </div>
+                  <div>
+                    <div className="card-days">{d}</div>
+                    <div className="card-days-label">day{d===1?'':'s'}</div>
+                  </div>
+                  {editMode && e.isMine && <button className="card-del" onClick={()=>handleRemoveEvent(e.dbId)}>&times;</button>}
+                </div>
+              );
+            })}
+          </div>
+
+          <button className="fab" onClick={()=>setShowAdd(true)}>+ Add a big day</button>
+        </React.Fragment>
+      )}
+
+      {view === 'friends' && (
+        <FriendsScreen me={me} friendships={friendships} onSearchResults={handleSearch} onSendRequest={handleSendRequest} onRespond={handleRespond} />
+      )}
+
+      <div className="bottomnav">
+        <div className={"nav-item"+(view==='calendar'?' active':'')} onClick={()=>setView('calendar')}>Big Days</div>
+        <div className={"nav-item"+(view==='friends'?' active':'')} onClick={()=>setView('friends')}>
+          Friends
+          {incomingCount > 0 && <span className="badge">{incomingCount}</span>}
+        </div>
+      </div>
+
+      {showAdd && <AddEventSheet onClose={()=>setShowAdd(false)} onSave={handleAddEvent} />}
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
