@@ -246,7 +246,7 @@ function AuthScreen(){
       const saved = JSON.parse(localStorage.getItem('bigdays_device_creds') || 'null');
       if (saved && saved.username && saved.pin){
         setBusy(true);
-        const email = `${saved.username}@bigdays.local`;
+        const email = `${saved.username}@bigdaysapp.com`;
         const password = pinToPassword(saved.username, saved.pin);
         supabase.auth.signInWithPassword({email, password}).finally(() => setBusy(false));
       }
@@ -265,7 +265,7 @@ function AuthScreen(){
         uname = slugUsername(displayName) + randomSuffix();
       }
       const pin = randomPin();
-      const email = `${uname}@bigdays.local`;
+      const email = `${uname}@bigdaysapp.com`;
       const password = pinToPassword(uname, pin);
       const {data: signUpData, error: signUpErr} = await supabase.auth.signUp({email, password});
       if (signUpErr) throw signUpErr;
@@ -285,7 +285,7 @@ function AuthScreen(){
     if (!uname || existingPin.length < 4){ setError('Enter your username and PIN.'); return; }
     setBusy(true);
     try{
-      const email = `${uname}@bigdays.local`;
+      const email = `${uname}@bigdaysapp.com`;
       const password = pinToPassword(uname, existingPin);
       const {error: loginErr} = await supabase.auth.signInWithPassword({email, password});
       if (loginErr) throw new Error('That username or PIN isn\'t right.');
