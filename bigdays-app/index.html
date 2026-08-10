@@ -223,77 +223,111 @@ function generateAutoEvents(monthsAhead = 6){
   return out;
 }
 
+function randomSuffix(){
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+function randomPin(){
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
+// No visible login for kids: first visit asks only for a name, then silently creates
+// an account with a random username+PIN behind the scenes and remembers it on this device.
 function AuthScreen(){
-  const [tab, setTab] = useState('login');
   const [displayName, setDisplayName] = useState('');
-  const [username, setUsername] = useState('');
-  const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [existingUsername, setExistingUsername] = useState('');
+  const [existingPin, setExistingPin] = useState('');
 
-  async function handleCreate(){
+  useEffect(() => {
+    // If this device has saved credentials (e.g. session got cleared), quietly log back in.
+    try{
+      const saved = JSON.parse(localStorage.getItem('bigdays_device_creds') || 'null');
+      if (saved && saved.username && saved.pin){
+        setBusy(true);
+        const email = `${saved.username}@bigdays.local`;
+        const password = pinToPassword(saved.username, saved.pin);
+        supabase.auth.signInWithPassword({email, password}).finally(() => setBusy(false));
+      }
+    }catch(e){}
+  }, []);
+
+  async function handleStart(){
     setError('');
-    const uname = slugUsername(username || displayName);
-    if (!displayName.trim() || !uname || pin.length < 4){ setError('Enter your name, a username, and a 4-digit PIN.'); return; }
+    if (!displayName.trim()){ setError('Type your name to get started.'); return; }
     setBusy(true);
     try{
-      const {data: existing} = await supabase.from('profiles').select('id').eq('username', uname).maybeSingle();
-      if (existing){ setError('That username is taken \u2014 try another.'); setBusy(false); return; }
+      let uname = slugUsername(displayName) + randomSuffix();
+      for (let tries = 0; tries < 5; tries++){
+        const {data: existing} = await supabase.from('profiles').select('id').eq('username', uname).maybeSingle();
+        if (!existing) break;
+        uname = slugUsername(displayName) + randomSuffix();
+      }
+      const pin = randomPin();
       const email = `${uname}@bigdays.local`;
       const password = pinToPassword(uname, pin);
       const {data: signUpData, error: signUpErr} = await supabase.auth.signUp({email, password});
       if (signUpErr) throw signUpErr;
       const userId = signUpData.user?.id;
-      if (!userId) throw new Error('Could not create account.');
+      if (!userId) throw new Error('Could not create your calendar. Try again.');
       const color = AVATAR_COLORS[Math.floor(Math.random()*AVATAR_COLORS.length)];
       const {error: profErr} = await supabase.from('profiles').insert({id:userId, username:uname, display_name:displayName.trim(), avatar_color:color});
       if (profErr) throw profErr;
+      localStorage.setItem('bigdays_device_creds', JSON.stringify({username:uname, pin}));
     }catch(e){ setError(e.message || 'Something went wrong.'); }
     setBusy(false);
   }
 
-  async function handleLogin(){
+  async function handleExistingLogin(){
     setError('');
-    const uname = slugUsername(username);
-    if (!uname || pin.length < 4){ setError('Enter your username and PIN.'); return; }
+    const uname = slugUsername(existingUsername);
+    if (!uname || existingPin.length < 4){ setError('Enter your username and PIN.'); return; }
     setBusy(true);
     try{
       const email = `${uname}@bigdays.local`;
-      const password = pinToPassword(uname, pin);
+      const password = pinToPassword(uname, existingPin);
       const {error: loginErr} = await supabase.auth.signInWithPassword({email, password});
-      if (loginErr) throw new Error('Username or PIN not right \u2014 try again.');
+      if (loginErr) throw new Error('That username or PIN isn\'t right.');
+      localStorage.setItem('bigdays_device_creds', JSON.stringify({username:uname, pin:existingPin}));
     }catch(e){ setError(e.message); }
     setBusy(false);
   }
+
+  if (busy && !error) return <div className="loading-screen">One sec...</div>;
 
   return (
     <div className="auth-wrap">
       <div className="auth-brand">big<span style={{color:'var(--mango)'}}>.</span>days</div>
       <div className="auth-sub">A calendar for the days worth counting down to</div>
-      <div className="auth-tabs">
-        <div className={"auth-tab" + (tab==='login'?' active':'')} onClick={()=>{setTab('login');setError('');}}>Log In</div>
-        <div className={"auth-tab" + (tab==='create'?' active':'')} onClick={()=>{setTab('create');setError('');}}>New Here</div>
-      </div>
 
-      {tab === 'create' && (
+      {!showAdvanced ? (
         <React.Fragment>
-          <div className="field-label">Your name</div>
+          <div className="field-label">What's your name?</div>
           <input className="field-input" placeholder="e.g. Sofia" value={displayName} onChange={e=>setDisplayName(e.target.value)} />
+          {error && <div className="err">{error}</div>}
+          <button className="btn btn-save btn-full" style={{marginTop:20}} disabled={busy} onClick={handleStart}>
+            {busy ? "One sec..." : "Start my calendar"}
+          </button>
+          <div className="hint" style={{textAlign:'center', marginTop:14, cursor:'pointer'}} onClick={()=>{setShowAdvanced(true); setError('');}}>
+            Already have an account on another device?
+          </div>
+        </React.Fragment>
+      ) : (
+        <React.Fragment>
+          <div className="field-label">Your username</div>
+          <input className="field-input" value={existingUsername} onChange={e=>setExistingUsername(e.target.value.replace(/\s/g,''))} />
+          <div className="field-label">Your PIN</div>
+          <input className="field-input" type="tel" inputMode="numeric" maxLength="6" value={existingPin} onChange={e=>setExistingPin(e.target.value.replace(/\D/g,''))} />
+          {error && <div className="err">{error}</div>}
+          <button className="btn btn-save btn-full" style={{marginTop:20}} disabled={busy} onClick={handleExistingLogin}>
+            {busy ? "One sec..." : "Log in"}
+          </button>
+          <div className="hint" style={{textAlign:'center', marginTop:14, cursor:'pointer'}} onClick={()=>{setShowAdvanced(false); setError('');}}>
+            Never mind, start fresh instead
+          </div>
         </React.Fragment>
       )}
-
-      <div className="field-label">Username (no spaces)</div>
-      <input className="field-input" placeholder="e.g. sofia407" value={username} onChange={e=>setUsername(e.target.value.replace(/\s/g,''))} />
-
-      <div className="field-label">4-digit PIN</div>
-      <input className="field-input" type="tel" inputMode="numeric" maxLength="6" placeholder="1234" value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,''))} />
-
-      {error && <div className="err">{error}</div>}
-
-      <button className="btn btn-save btn-full" style={{marginTop:20}} disabled={busy} onClick={tab==='create'?handleCreate:handleLogin}>
-        {busy ? "One sec..." : (tab==='create' ? "Create my calendar" : "Log in")}
-      </button>
-      <div className="hint">Ask a parent before sharing your username with friends. No email needed \u2014 just your name and PIN.</div>
     </div>
   );
 }
@@ -356,7 +390,13 @@ function FriendsScreen({me, friendships, onSearchResults, onSendRequest, onRespo
 
   return (
     <div className="friends-wrap">
-      <div className="field-label">Add a friend by username</div>
+      <div className="card" style={{marginBottom:18, background:'rgba(245,166,35,0.06)', borderColor:'rgba(245,166,35,0.25)'}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(245,240,232,0.5)', marginBottom:4}}>Your friend code</div>
+          <div style={{fontFamily:'Playfair Display, serif', fontSize:20, color:'var(--mango)'}}>{me.username}</div>
+        </div>
+      </div>
+      <div className="field-label">Add a friend by their code</div>
       <input className="field-input" placeholder="Search username..." value={query} onChange={e=>runSearch(e.target.value)} />
 
       {results.length > 0 && (
