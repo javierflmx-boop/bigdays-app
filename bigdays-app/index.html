@@ -241,6 +241,11 @@ function firstSaturday(year, monthIndex0){
   d.setDate(1 + (6 - d.getDay() + 7) % 7);
   return d;
 }
+function thirdSaturday(year, monthIndex0){
+  const d = firstSaturday(year, monthIndex0);
+  d.setDate(d.getDate() + 14);
+  return d;
+}
 function nextSunday(fromDate){
   const d = new Date(fromDate);
   d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7));
@@ -288,8 +293,8 @@ function generateAutoEvents(monthsAhead = 6){
     const y = now.getFullYear(), m = now.getMonth() + i;
     const hd = firstSaturday(y, m);
     out.push({id:`hd-${hd.getFullYear()}-${hd.getMonth()}`, title:"Home Depot Kids Workshop", date:toISO(hd), cat:"homedepot", link:HD_LINK, auto:true});
-    const lw = new Date(y, m, 1);
-    out.push({id:`lw-${lw.getFullYear()}-${lw.getMonth()}`, title:"Lowe's Kids Workshop \u2014 check this month's date", date:toISO(lw), cat:"lowes", link:LOWES_LINK, auto:true});
+    const lw = thirdSaturday(y, m);
+    out.push({id:`lw-${lw.getFullYear()}-${lw.getMonth()}`, title:"Lowe's Kids Workshop", date:toISO(lw), cat:"lowes", link:LOWES_LINK, auto:true});
     const lg = new Date(y, m, 2);
     out.push({id:`lg-${lg.getFullYear()}-${lg.getMonth()}`, title:"LEGO Store Mini Build \u2014 check this month's date", date:toISO(lg), cat:"build", link:LEGO_LINK, auto:true});
   }
