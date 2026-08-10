@@ -28,7 +28,9 @@
     --grape:#8B5FBF;
     --build:#4CAF7D;
     --craft:#FFB627;
-    --outdoor:#4CAF7D;
+    --outdoor:#6B9E4E;
+    --homedepot:#FF7A1A;
+    --lowes:#2B6CB0;
     --birthday:#FF6B9D;
     --trip:#4FC3E0;
     --pool:#2FC5D2;
@@ -198,14 +200,28 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const CATS = {
-  build:    {label:"Build Day", color:"var(--build)"},
-  craft:    {label:"Craft Day", color:"var(--craft)"},
-  outdoor:  {label:"Outdoor Day", color:"var(--outdoor)"},
-  birthday: {label:"Birthday",  color:"var(--birthday)"},
-  trip:     {label:"Trip",      color:"var(--trip)"},
-  pool:     {label:"Pool Day",  color:"var(--pool)"},
-  park:     {label:"Park Day",  color:"var(--park)"},
-  other:    {label:"Big Day",   color:"var(--other)"},
+  build:     {label:"Build Day", color:"var(--build)"},
+  craft:     {label:"Craft Day", color:"var(--craft)"},
+  outdoor:   {label:"Outdoor Day", color:"var(--outdoor)"},
+  homedepot: {label:"Home Depot", color:"var(--homedepot)"},
+  lowes:     {label:"Lowe's",     color:"var(--lowes)"},
+  birthday:  {label:"Birthday",  color:"var(--birthday)"},
+  trip:      {label:"Trip",      color:"var(--trip)"},
+  pool:      {label:"Pool Day",  color:"var(--pool)"},
+  park:      {label:"Park Day",  color:"var(--park)"},
+  other:     {label:"Big Day",   color:"var(--other)"},
+};
+const PASTELS = {
+  build:     "#DFF3E7",
+  craft:     "#FFF1D6",
+  outdoor:   "#EAF2DC",
+  homedepot: "#FFE3CC",
+  lowes:     "#DCEBFA",
+  birthday:  "#FFE1EC",
+  trip:      "#DFF3FB",
+  pool:      "#D7F5F7",
+  park:      "#EAF6DC",
+  other:     "#F1E6FA",
 };
 const AVATAR_COLORS = ["#F5A623","#7C9885","#E8927C","#6FA8B5","#C9A15A","#B8A8D9"];
 
@@ -271,9 +287,9 @@ function generateAutoEvents(monthsAhead = 6){
   for (let i = 0; i < monthsAhead; i++){
     const y = now.getFullYear(), m = now.getMonth() + i;
     const hd = firstSaturday(y, m);
-    out.push({id:`hd-${hd.getFullYear()}-${hd.getMonth()}`, title:"Home Depot Kids Workshop", date:toISO(hd), cat:"build", link:HD_LINK, auto:true});
+    out.push({id:`hd-${hd.getFullYear()}-${hd.getMonth()}`, title:"Home Depot Kids Workshop", date:toISO(hd), cat:"homedepot", link:HD_LINK, auto:true});
     const lw = new Date(y, m, 1);
-    out.push({id:`lw-${lw.getFullYear()}-${lw.getMonth()}`, title:"Lowe's Kids Workshop \u2014 check this month's date", date:toISO(lw), cat:"build", link:LOWES_LINK, auto:true});
+    out.push({id:`lw-${lw.getFullYear()}-${lw.getMonth()}`, title:"Lowe's Kids Workshop \u2014 check this month's date", date:toISO(lw), cat:"lowes", link:LOWES_LINK, auto:true});
     const lg = new Date(y, m, 2);
     out.push({id:`lg-${lg.getFullYear()}-${lg.getMonth()}`, title:"LEGO Store Mini Build \u2014 check this month's date", date:toISO(lg), cat:"build", link:LEGO_LINK, auto:true});
   }
@@ -583,9 +599,18 @@ function CalendarScreen({allEvents, onConfirmAuto}){
           const dayNum = parseInt(dateStr.slice(-2), 10);
           const evs = eventsByDate[dateStr] || [];
           const first = evs[0];
+          const isSelected = dateStr===selectedDate;
+          const dayCats = [...new Set(evs.map(e => e.cat))];
+          let dayStyle = {};
+          if (!isSelected && dayCats.length === 1){
+            dayStyle = {background: PASTELS[dayCats[0]]};
+          } else if (!isSelected && dayCats.length >= 2){
+            dayStyle = {background: `linear-gradient(90deg, ${PASTELS[dayCats[0]]} 50%, ${PASTELS[dayCats[1]]} 50%)`};
+          }
           return (
             <div key={i}
-              className={"cal-day" + (dateStr===today?' today':'') + (dateStr===selectedDate?' selected':'')}
+              className={"cal-day" + (dateStr===today?' today':'') + (isSelected?' selected':'')}
+              style={dayStyle}
               onClick={()=>setSelectedDate(dateStr)}>
               <div className="cal-day-num">{dayNum}</div>
               {first && (
@@ -750,6 +775,15 @@ function App(){
 
       {view === 'calendar' && (
         <React.Fragment>
+          <div className="seg-row">
+            <div className={"seg-btn"+(dayMode==='grid'?' active':'')} onClick={()=>setDayMode('grid')}>Calendar</div>
+            <div className={"seg-btn"+(dayMode==='list'?' active':'')} onClick={()=>setDayMode('list')}>List</div>
+          </div>
+
+          {dayMode === 'grid' ? (
+            <CalendarScreen allEvents={allEventsForCalendar} onConfirmAuto={handleConfirmAuto} />
+          ) : (
+          <React.Fragment>
           <div className={"hero" + (isToday ? " today-hero" : "")}>
             {next ? (
               <React.Fragment>
@@ -767,15 +801,6 @@ function App(){
             ) : <div className="hero-empty">Nothing on the calendar yet.</div>}
           </div>
 
-          <div className="seg-row">
-            <div className={"seg-btn"+(dayMode==='list'?' active':'')} onClick={()=>setDayMode('list')}>List</div>
-            <div className={"seg-btn"+(dayMode==='grid'?' active':'')} onClick={()=>setDayMode('grid')}>Calendar</div>
-          </div>
-
-          {dayMode === 'grid' ? (
-            <CalendarScreen allEvents={allEventsForCalendar} onConfirmAuto={handleConfirmAuto} />
-          ) : (
-          <React.Fragment>
           <div className="filters">
             <button className={"filter-chip"+(filter==='all'?' active':'')} onClick={()=>setFilter('all')}>All</button>
             {Object.entries(CATS).map(([key,c]) => (
