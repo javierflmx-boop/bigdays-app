@@ -41,6 +41,9 @@
     --thanksgiving:#B5651D;
     --christmas:#C0392B;
     --july4:#3B5FC4;
+    --mothersday:#D96BA0;
+    --fathersday:#3D5A80;
+    --kingsday:#C9932B;
     --line:rgba(58,46,77,0.10);
     --card:#FFFFFF;
   }
@@ -240,6 +243,9 @@ const CATS = {
   halloween:    {label:"Halloween", color:"var(--halloween)"},
   thanksgiving: {label:"Thanksgiving", color:"var(--thanksgiving)"},
   christmas:    {label:"Christmas", color:"var(--christmas)"},
+  mothersday:   {label:"Mother's Day", color:"var(--mothersday)"},
+  fathersday:   {label:"Father's Day", color:"var(--fathersday)"},
+  kingsday:     {label:"Three Kings Day", color:"var(--kingsday)"},
   july4:        {label:"4th of July", color:"var(--july4)"},
   other:        {label:"Big Day",   color:"var(--other)"},
 };
@@ -257,6 +263,9 @@ const PASTELS = {
   halloween:    "#FFE6CC",
   thanksgiving: "#F5E3CE",
   christmas:    "#F9D9D6",
+  mothersday:   "#FBE3EF",
+  fathersday:   "#DCE5F0",
+  kingsday:     "#F7E9CE",
   july4:        "#DCE6FA",
   other:     "#F1E6FA",
 };
@@ -313,6 +322,21 @@ function nextThanksgiving(){
   if (d < now) d = fourthThursdayNovember(now.getFullYear() + 1);
   return d;
 }
+function nthWeekdayOfMonth(year, month, weekday, n){
+  const d = new Date(year, month, 1);
+  let count = 0;
+  while (true){
+    if (d.getDay() === weekday){ count++; if (count === n) break; }
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+function nextNthWeekday(month, weekday, n){
+  const now = new Date(); now.setHours(0,0,0,0);
+  let d = nthWeekdayOfMonth(now.getFullYear(), month, weekday, n);
+  if (d < now) d = nthWeekdayOfMonth(now.getFullYear() + 1, month, weekday, n);
+  return d;
+}
 function toISO(d){
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -362,6 +386,7 @@ function generateAutoEvents(monthsAhead = 6){
     {key:"halloween",    title:"Halloween",       cat:"halloween",    month:9,  day:31},
     {key:"july4",        title:"4th of July",     cat:"july4",        month:6,  day:4},
     {key:"christmas",    title:"Christmas",       cat:"christmas",    month:11, day:25},
+    {key:"kingsday",     title:"Three Kings Day", cat:"kingsday",     month:0,  day:6},
   ];
   FIXED_HOLIDAYS.forEach(h => {
     const d = nextYearlyDate(h.month, h.day);
@@ -369,6 +394,10 @@ function generateAutoEvents(monthsAhead = 6){
   });
   const thanksgiving = nextThanksgiving();
   out.push({id:`hol-thanksgiving-${thanksgiving.getFullYear()}`, title:"Thanksgiving", date:toISO(thanksgiving), cat:"thanksgiving", auto:true, certain:true});
+  const mothersDay = nextNthWeekday(4, 0, 2); // 2nd Sunday of May
+  out.push({id:`hol-mothersday-${mothersDay.getFullYear()}`, title:"Mother's Day", date:toISO(mothersDay), cat:"mothersday", auto:true, certain:true});
+  const fathersDay = nextNthWeekday(5, 0, 3); // 3rd Sunday of June
+  out.push({id:`hol-fathersday-${fathersDay.getFullYear()}`, title:"Father's Day", date:toISO(fathersDay), cat:"fathersday", auto:true, certain:true});
   return out;
 }
 
