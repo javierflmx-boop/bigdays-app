@@ -60,3 +60,7 @@ create policy "friendships insert as requester" on public.friendships
   for insert with check (auth.uid() = requester_id);
 create policy "friendships update as participant" on public.friendships
   for update using (auth.uid() = addressee_id or auth.uid() = requester_id);
+
+-- Enable live sync: lets connected devices see changes instantly without refreshing
+alter publication supabase_realtime add table public.events;
+alter publication supabase_realtime add table public.friendships;
