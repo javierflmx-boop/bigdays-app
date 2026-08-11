@@ -151,6 +151,7 @@
   .cal-day{min-height:58px;border-radius:12px;background:var(--white);border:2px solid transparent;display:flex;flex-direction:column;align-items:center;padding:5px 2px 4px;cursor:pointer;position:relative;box-shadow:0 2px 4px rgba(58,46,77,0.06);}
   .cal-day.empty{background:transparent;box-shadow:none;cursor:default;}
   .cal-day.today{border-color:var(--sun-deep);}
+  .cal-day.drop-hover{outline:3px dashed var(--sun-deep);transform:scale(1.06);z-index:2;}
   .cal-day.selected{background:var(--ink);}
   .cal-day.selected .cal-day-num{color:var(--white);}
   .cal-day-num{font-size:12px;font-weight:700;color:var(--ink);}
@@ -161,6 +162,9 @@
   .quick-add-row{display:flex;gap:8px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none;}
   .quick-add-row::-webkit-scrollbar{display:none;}
   .quick-chip{flex-shrink:0;padding:10px 16px;border-radius:100px;font-size:12px;font-weight:800;font-family:'Baloo 2',sans-serif;color:#3A2A00;cursor:pointer;box-shadow:0 2px 6px rgba(58,46,77,0.1);}
+
+  .drag-hint{font-size:11px;color:rgba(58,46,77,0.4);font-weight:600;margin-bottom:10px;text-align:center;}
+  .drag-ghost{position:fixed;transform:translate(-50%,-120%) rotate(-3deg);padding:12px 18px;border-radius:16px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#2E1400;box-shadow:0 14px 30px rgba(0,0,0,0.28);pointer-events:none;z-index:300;max-width:200px;}
 
   .agenda{margin-top:22px;}
   .agenda-date{font-family:'Baloo 2',sans-serif;font-size:19px;font-weight:800;color:var(--ink);margin-bottom:12px;}
@@ -198,7 +202,7 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <script type="text/babel">
-const {useState, useEffect, useMemo, useCallback} = React;
+const {useState, useEffect, useMemo, useCallback, useRef} = React;
 
 // ====== FILL THESE IN FROM YOUR SUPABASE PROJECT (Settings > API) ======
 const SUPABASE_URL = "https://yultrleckkpchuzszbnx.supabase.co";
@@ -573,9 +577,11 @@ function Confetti({triggerKey}){
   );
 }
 
-function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd, onEditEvent}){
+function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd, onEditEvent, onMoveEvent}){
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
   const [selectedDate, setSelectedDate] = useState(todayISO());
+  const [drag, setDrag] = useState(null); // {id, title, cat, x, y}
+  const dragRef = useRef(null);
 
   const eventsByDate = useMemo(() => {
     const map = {};
@@ -591,8 +597,55 @@ function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd, onEditEvent}){
     const d = new Date(calMonth); d.setMonth(d.getMonth() + delta); setCalMonth(d);
   }
 
+  function clearDropHighlight(){
+    document.querySelectorAll('.cal-day.drop-hover').forEach(el => el.classList.remove('drop-hover'));
+  }
+
+  function startDrag(ev, startEvt){
+    const startX = startEvt.clientX, startY = startEvt.clientY;
+    let dragging = false;
+    dragRef.current = {id: ev.dbId};
+
+    function onMove(moveEvt){
+      const dx = moveEvt.clientX - startX, dy = moveEvt.clientY - startY;
+      if (!dragging && Math.hypot(dx, dy) > 10){
+        dragging = true;
+        setDrag({id: ev.dbId, title: ev.title, cat: ev.cat, x: moveEvt.clientX, y: moveEvt.clientY});
+      }
+      if (dragging){
+        setDrag(prev => prev ? {...prev, x: moveEvt.clientX, y: moveEvt.clientY} : prev);
+        clearDropHighlight();
+        const el = document.elementFromPoint(moveEvt.clientX, moveEvt.clientY);
+        const dayEl = el ? el.closest('.cal-day') : null;
+        if (dayEl && dayEl.dataset.date) dayEl.classList.add('drop-hover');
+      }
+    }
+    function onUp(upEvt){
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      if (dragging){
+        const el = document.elementFromPoint(upEvt.clientX, upEvt.clientY);
+        const dayEl = el ? el.closest('.cal-day') : null;
+        clearDropHighlight();
+        if (dayEl && dayEl.dataset.date && dayEl.dataset.date !== ev.date){
+          onMoveEvent(ev.dbId, dayEl.dataset.date);
+          setSelectedDate(dayEl.dataset.date);
+        }
+      }
+      setDrag(null);
+      dragRef.current = null;
+    }
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }
+
   return (
     <div className="cal-wrap">
+      {drag && (
+        <div className="drag-ghost" style={{left: drag.x, top: drag.y, background: CATS[drag.cat].color}}>
+          {drag.title}
+        </div>
+      )}
       <div className="cal-nav">
         <div className="cal-nav-btn" onClick={()=>shiftMonth(-1)}>&larr;</div>
         <div className="cal-month-label">{monthLabel(calMonth)}</div>
@@ -618,6 +671,7 @@ function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd, onEditEvent}){
             <div key={i}
               className={"cal-day" + (dateStr===today?' today':'') + (isSelected?' selected':'')}
               style={dayStyle}
+              data-date={dateStr}
               onClick={()=>setSelectedDate(dateStr)}>
               <div className="cal-day-num">{dayNum}</div>
               {first && (
@@ -642,6 +696,7 @@ function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd, onEditEvent}){
       <div className="agenda">
         <div className="agenda-date">{fmtDateShort(selectedDate)}</div>
         {dayEvents.length === 0 && <div className="empty-state">Nothing on this day yet.</div>}
+        {dayEvents.length > 0 && <div className="drag-hint">Press and drag a note to move it to another day</div>}
         {dayEvents.map((e, idx) => e.auto ? (
           <div className="ghost-card" key={e.id} style={{transform:`rotate(${idx%2===0?-1.5:1.5}deg)`}}>
             <span className="card-dot" style={{background:CATS[e.cat].color, opacity:0.5}}></span>
@@ -653,8 +708,9 @@ function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd, onEditEvent}){
           </div>
         ) : (
           <div className="card note-card" key={e.id}
-            onClick={()=>{ if(e.isMine) onEditEvent(e.dbId); }}
-            style={{transform:`rotate(${idx%2===0?-1.5:1.5}deg)`, marginTop:idx>0?18:0, cursor:e.isMine?'pointer':'default'}}>
+            onClick={()=>{ if(e.isMine && !dragRef.current) onEditEvent(e.dbId); }}
+            onPointerDown={e.isMine ? (pe)=>startDrag(e, pe) : undefined}
+            style={{transform:`rotate(${idx%2===0?-1.5:1.5}deg)`, marginTop:idx>0?18:0, cursor:e.isMine?'grab':'default', touchAction:e.isMine?'none':'auto'}}>
             <span className="card-dot" style={{background:CATS[e.cat].color}}></span>
             <div className="card-body">
               <div className="card-title">{e.title}</div>
@@ -777,6 +833,10 @@ function App(){
     setEvents(prev => prev.filter(e => e.id !== id));
     closeAddSheet();
   }
+  async function handleMoveEvent(id, newDate){
+    const {data, error} = await supabase.from('events').update({event_date: newDate}).eq('id', id).select('*, profiles:owner_id(display_name)').single();
+    if (!error && data) setEvents(prev => prev.map(e => e.id === id ? data : e));
+  }
   async function handleSendRequest(targetId){
     const {data} = await supabase.from('friendships').insert({requester_id: me.id, addressee_id: targetId, status:'pending'})
       .select('*, requester:requester_id(id,username,display_name,avatar_color), addressee:addressee_id(id,username,display_name,avatar_color)').single();
@@ -844,7 +904,7 @@ function App(){
           </div>
 
           {dayMode === 'grid' ? (
-            <CalendarScreen allEvents={allEventsForCalendar} onConfirmAuto={handleConfirmAuto} onQuickAdd={openQuickAdd} onEditEvent={editById} />
+            <CalendarScreen allEvents={allEventsForCalendar} onConfirmAuto={handleConfirmAuto} onQuickAdd={openQuickAdd} onEditEvent={editById} onMoveEvent={handleMoveEvent} />
           ) : (
           <React.Fragment>
           <div className={"hero" + (isToday ? " today-hero" : "")}>
