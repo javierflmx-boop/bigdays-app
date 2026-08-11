@@ -1016,6 +1016,12 @@ function App(){
     return [...normalized, ...autoEvents];
   }, [events, autoEvents, me]);
 
+  const activeCats = useMemo(() => new Set(allEventsForCalendar.map(e => e.cat)), [allEventsForCalendar]);
+
+  useEffect(() => {
+    if (filter !== 'all' && !activeCats.has(filter)) setFilter('all');
+  }, [activeCats, filter]);
+
   const next = upcoming[0];
   const rest = upcoming.slice(1);
   const incomingCount = friendships.filter(f => f.status==='pending' && f.addressee_id===me?.id).length;
@@ -1077,7 +1083,7 @@ function App(){
 
           <div className="filters">
             <button className={"filter-chip"+(filter==='all'?' active':'')} onClick={()=>setFilter('all')}>All</button>
-            {Object.entries(CATS).map(([key,c]) => (
+            {Object.entries(CATS).filter(([key]) => activeCats.has(key)).map(([key,c]) => (
               <button key={key} className={"filter-chip"+(filter===key?' active':'')} onClick={()=>setFilter(key)}>
                 <span className="fdot" style={{background:c.color}}></span>{c.label}
               </button>
