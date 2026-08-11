@@ -913,6 +913,22 @@ function App(){
     return () => sub.subscription.unsubscribe();
   }, [loadEverything]);
 
+  // Live sync: when Luna's phone adds/edits/deletes a day, or a friend request changes,
+  // every other connected phone (like Miles') picks it up instantly, no refresh needed.
+  useEffect(() => {
+    if (!session) return;
+    const channel = supabase
+      .channel('bigdays-live-' + session.user.id)
+      .on('postgres_changes', {event:'*', schema:'public', table:'events'}, () => {
+        loadEverything(session.user.id);
+      })
+      .on('postgres_changes', {event:'*', schema:'public', table:'friendships'}, () => {
+        loadEverything(session.user.id);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session, loadEverything]);
+
   async function handleAddEvent(form, editingId){
     if (editingId){
       const {data, error} = await supabase.from('events').update({
