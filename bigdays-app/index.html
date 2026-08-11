@@ -120,6 +120,10 @@
   .vis-row{display:flex;gap:8px;margin-top:2px;}
   .vis-pick{flex:1;padding:13px 4px;border-radius:14px;border:2px solid var(--line);background:var(--white);cursor:pointer;text-align:center;font-size:11px;color:rgba(58,46,77,0.6);font-weight:700;}
   .vis-pick.sel{border-color:var(--sun-deep);color:var(--ink);background:#FFF3DC;}
+  .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;}
+  .theme-swatch{border-radius:16px;padding:26px 10px;text-align:center;cursor:pointer;border:3px solid transparent;box-shadow:0 3px 8px rgba(58,46,77,0.1);}
+  .theme-swatch.sel{border-color:var(--sun-deep);}
+  .theme-label{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:var(--ink);}
   .sheet-actions{display:flex;gap:10px;margin-top:22px;}
   .sheet-actions .btn{flex:1;}
 
@@ -236,6 +240,23 @@ const PASTELS = {
   other:     "#F1E6FA",
 };
 const AVATAR_COLORS = ["#F5A623","#7C9885","#E8927C","#6FA8B5","#C9A15A","#B8A8D9"];
+
+function svgPattern(inner, fill, size){
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>${inner.split('CURRENT_FILL').join(fill)}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+const FLOWER_SVG = "<g opacity='0.55' fill='CURRENT_FILL'><g transform='translate(22,24)'><circle cx='0' cy='-9' r='7'/><circle cx='0' cy='9' r='7'/><circle cx='-9' cy='0' r='7'/><circle cx='9' cy='0' r='7'/><circle cx='0' cy='0' r='4.5' fill='#FFFFFF'/></g><g transform='translate(92,78)'><circle cx='0' cy='-7' r='5.5'/><circle cx='0' cy='7' r='5.5'/><circle cx='-7' cy='0' r='5.5'/><circle cx='7' cy='0' r='5.5'/><circle cx='0' cy='0' r='3.5' fill='#FFFFFF'/></g></g>";
+const RAINBOW_SVG = "<g opacity='0.5' transform='translate(18,78)' fill='none' stroke-linecap='round'><path d='M0,32 A32,32 0 0,1 64,32' stroke='#FF9EC4' stroke-width='6'/><path d='M7,32 A25,25 0 0,1 57,32' stroke='#FFD466' stroke-width='6'/><path d='M14,32 A18,18 0 0,1 50,32' stroke='#8FD3E8' stroke-width='6'/></g>";
+const CARS_SVG = "<g opacity='0.5' fill='CURRENT_FILL' transform='translate(18,86)'><rect x='0' y='0' width='54' height='16' rx='7'/><rect x='10' y='-11' width='30' height='14' rx='5'/><circle cx='11' cy='18' r='6.5' fill='#3A2E4D'/><circle cx='43' cy='18' r='6.5' fill='#3A2E4D'/></g>";
+const DINO_SVG = "<g opacity='0.5' fill='CURRENT_FILL' transform='translate(20,78)'><path d='M0,20 Q4,-6 30,0 L34,-11 L38,0 L42,-9 L46,2 Q56,5 56,20 L46,20 L46,29 L38,29 L38,20 L15,20 L15,29 L7,29 L7,20 Z'/><circle cx='41' cy='4' r='2.2' fill='#3A2E4D'/></g>";
+
+const THEMES = {
+  sunset:    {label:"Sunset",    bg1:"#FFF4E0", bg2:"#FFE8F0", pattern:null,        color:null,      swatch:"linear-gradient(135deg,#FFF4E0,#FFE8F0)"},
+  flowers:   {label:"Flowers",   bg1:"#FFF4F9", bg2:"#FBEBFF", pattern:FLOWER_SVG,  color:"#FFB6D5", swatch:"linear-gradient(135deg,#FFF4F9,#FBEBFF)"},
+  rainbow:   {label:"Rainbow",   bg1:"#F1FBFF", bg2:"#FFFAEC", pattern:RAINBOW_SVG, color:null,      swatch:"linear-gradient(135deg,#F1FBFF,#FFFAEC)"},
+  cars:      {label:"Cars",      bg1:"#EAF4FF", bg2:"#FFF7E8", pattern:CARS_SVG,    color:"#8FBFEA", swatch:"linear-gradient(135deg,#EAF4FF,#FFF7E8)"},
+  dinosaurs: {label:"Dinosaurs", bg1:"#EFFAF0", bg2:"#F8FFE8", pattern:DINO_SVG,    color:"#9BC46A", swatch:"linear-gradient(135deg,#EFFAF0,#F8FFE8)"},
+};
 
 const HD_LINK = "https://www.homedepot.com/workshops/kids";
 const LOWES_LINK = "https://www.lowes.com/diy-projects-and-ideas/workshops";
@@ -397,6 +418,27 @@ function AuthScreen(){
           </div>
         </React.Fragment>
       )}
+    </div>
+  );
+}
+
+function ThemeSheet({current, onSelect, onClose}){
+  return (
+    <div className="sheet-overlay" onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
+      <div className="sheet">
+        <div className="sheet-title">Pick your background</div>
+        <div className="sheet-sub">Just for you \u2014 pick whatever you like best.</div>
+        <div className="theme-grid">
+          {Object.entries(THEMES).map(([key, t]) => (
+            <div key={key} className={"theme-swatch" + (current===key?' sel':'')} style={{background:t.swatch}} onClick={()=>{onSelect(key); onClose();}}>
+              <div className="theme-label">{t.label}</div>
+            </div>
+          ))}
+        </div>
+        <div className="sheet-actions">
+          <button className="btn btn-cancel btn-full" onClick={onClose}>Close</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -752,6 +794,26 @@ function App(){
     setEditingEvent(null);
   }
   const [editMode, setEditMode] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    try{ return localStorage.getItem('bigdays_theme') || 'sunset'; }catch(e){ return 'sunset'; }
+  });
+  const [showTheme, setShowTheme] = useState(false);
+
+  useEffect(() => {
+    const t = THEMES[theme] || THEMES.sunset;
+    const gradient = `linear-gradient(160deg, ${t.bg1}, ${t.bg2} 60%)`;
+    if (t.pattern){
+      document.body.style.backgroundImage = `${gradient}, ${svgPattern(t.pattern, t.color || '#000000', 120)}`;
+      document.body.style.backgroundRepeat = 'no-repeat, repeat';
+      document.body.style.backgroundSize = 'auto, 120px 120px';
+    } else {
+      document.body.style.backgroundImage = gradient;
+      document.body.style.backgroundRepeat = 'no-repeat';
+      document.body.style.backgroundSize = 'auto';
+    }
+    try{ localStorage.setItem('bigdays_theme', theme); }catch(e){}
+  }, [theme]);
+
   const [confirmedAutoIds, setConfirmedAutoIds] = useState(() => {
     try{ return JSON.parse(localStorage.getItem('bigdays_confirmed_auto') || '[]'); }catch(e){ return []; }
   });
@@ -891,10 +953,12 @@ function App(){
       <div className="topbar">
         <div className="brand">big<span className="dot">.</span>days</div>
         <div className="topbar-actions">
+          <div className="icon-btn" onClick={()=>setShowTheme(true)}>\ud83c\udfa8</div>
           <div className="icon-btn" onClick={()=>setEditMode(!editMode)} style={editMode?{background:'var(--sun)',color:'#3A2200'}:{}}>{editMode?'\u2713':'\u270e'}</div>
           <div className="icon-btn" onClick={handleLogout}>↩</div>
         </div>
       </div>
+      {showTheme && <ThemeSheet current={theme} onSelect={setTheme} onClose={()=>setShowTheme(false)} />}
 
       {view === 'calendar' && (
         <React.Fragment>
