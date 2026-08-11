@@ -36,6 +36,11 @@
     --pool:#2FC5D2;
     --park:#8BC34A;
     --other:#B57EDC;
+    --valentines:#E63C6E;
+    --halloween:#E8720C;
+    --thanksgiving:#B5651D;
+    --christmas:#C0392B;
+    --july4:#3B5FC4;
     --line:rgba(58,46,77,0.10);
     --card:#FFFFFF;
   }
@@ -222,27 +227,37 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const CATS = {
-  build:     {label:"Build Day", color:"var(--build)"},
-  craft:     {label:"Craft Day", color:"var(--craft)"},
-  outdoor:   {label:"Outdoor Day", color:"var(--outdoor)"},
-  homedepot: {label:"Home Depot", color:"var(--homedepot)"},
-  lowes:     {label:"Lowe's",     color:"var(--lowes)"},
-  birthday:  {label:"Birthday",  color:"var(--birthday)"},
-  trip:      {label:"Trip",      color:"var(--trip)"},
-  pool:      {label:"Pool Day",  color:"var(--pool)"},
-  park:      {label:"Park Day",  color:"var(--park)"},
-  other:     {label:"Big Day",   color:"var(--other)"},
+  build:        {label:"Build Day", color:"var(--build)"},
+  craft:        {label:"Craft Day", color:"var(--craft)"},
+  outdoor:      {label:"Outdoor Day", color:"var(--outdoor)"},
+  homedepot:    {label:"Home Depot", color:"var(--homedepot)"},
+  lowes:        {label:"Lowe's",     color:"var(--lowes)"},
+  birthday:     {label:"Birthday",  color:"var(--birthday)"},
+  trip:         {label:"Trip",      color:"var(--trip)"},
+  pool:         {label:"Pool Day",  color:"var(--pool)"},
+  park:         {label:"Park Day",  color:"var(--park)"},
+  valentines:   {label:"Valentine's Day", color:"var(--valentines)"},
+  halloween:    {label:"Halloween", color:"var(--halloween)"},
+  thanksgiving: {label:"Thanksgiving", color:"var(--thanksgiving)"},
+  christmas:    {label:"Christmas", color:"var(--christmas)"},
+  july4:        {label:"4th of July", color:"var(--july4)"},
+  other:        {label:"Big Day",   color:"var(--other)"},
 };
 const PASTELS = {
-  build:     "#DFF3E7",
-  craft:     "#FFF1D6",
-  outdoor:   "#EAF2DC",
-  homedepot: "#FFE3CC",
-  lowes:     "#DCEBFA",
-  birthday:  "#FFE1EC",
-  trip:      "#DFF3FB",
-  pool:      "#D7F5F7",
-  park:      "#EAF6DC",
+  build:        "#DFF3E7",
+  craft:        "#FFF1D6",
+  outdoor:      "#EAF2DC",
+  homedepot:    "#FFE3CC",
+  lowes:        "#DCEBFA",
+  birthday:     "#FFE1EC",
+  trip:         "#DFF3FB",
+  pool:         "#D7F5F7",
+  park:         "#EAF6DC",
+  valentines:   "#FFE0EA",
+  halloween:    "#FFE6CC",
+  thanksgiving: "#F5E3CE",
+  christmas:    "#F9D9D6",
+  july4:        "#DCE6FA",
   other:     "#F1E6FA",
 };
 const AVATAR_COLORS = ["#F5A623","#7C9885","#E8927C","#6FA8B5","#C9A15A","#B8A8D9"];
@@ -275,6 +290,27 @@ function firstSaturday(year, monthIndex0){
 function thirdSaturday(year, monthIndex0){
   const d = firstSaturday(year, monthIndex0);
   d.setDate(d.getDate() + 14);
+  return d;
+}
+function nextYearlyDate(month, day){
+  const now = new Date(); now.setHours(0,0,0,0);
+  let d = new Date(now.getFullYear(), month, day);
+  if (d < now) d = new Date(now.getFullYear() + 1, month, day);
+  return d;
+}
+function fourthThursdayNovember(year){
+  const d = new Date(year, 10, 1);
+  let count = 0;
+  while (true){
+    if (d.getDay() === 4){ count++; if (count === 4) break; }
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+function nextThanksgiving(){
+  const now = new Date(); now.setHours(0,0,0,0);
+  let d = fourthThursdayNovember(now.getFullYear());
+  if (d < now) d = fourthThursdayNovember(now.getFullYear() + 1);
   return d;
 }
 function toISO(d){
@@ -317,10 +353,22 @@ function generateAutoEvents(monthsAhead = 6){
   for (let i = 0; i < monthsAhead; i++){
     const y = now.getFullYear(), m = now.getMonth() + i;
     const hd = firstSaturday(y, m);
-    out.push({id:`hd-${hd.getFullYear()}-${hd.getMonth()}`, title:"Home Depot Kids Workshop", date:toISO(hd), cat:"homedepot", link:HD_LINK, auto:true});
+    out.push({id:`hd-${hd.getFullYear()}-${hd.getMonth()}`, title:"Home Depot Kids Workshop", date:toISO(hd), cat:"homedepot", link:HD_LINK, auto:true, certain:true});
     const lw = thirdSaturday(y, m);
-    out.push({id:`lw-${lw.getFullYear()}-${lw.getMonth()}`, title:"Lowe's Kids Workshop", date:toISO(lw), cat:"lowes", link:LOWES_LINK, auto:true});
+    out.push({id:`lw-${lw.getFullYear()}-${lw.getMonth()}`, title:"Lowe's Kids Workshop", date:toISO(lw), cat:"lowes", link:LOWES_LINK, auto:true, certain:true});
   }
+  const FIXED_HOLIDAYS = [
+    {key:"valentines",   title:"Valentine's Day", cat:"valentines",   month:1,  day:14},
+    {key:"halloween",    title:"Halloween",       cat:"halloween",    month:9,  day:31},
+    {key:"july4",        title:"4th of July",     cat:"july4",        month:6,  day:4},
+    {key:"christmas",    title:"Christmas",       cat:"christmas",    month:11, day:25},
+  ];
+  FIXED_HOLIDAYS.forEach(h => {
+    const d = nextYearlyDate(h.month, h.day);
+    out.push({id:`hol-${h.key}-${d.getFullYear()}`, title:h.title, date:toISO(d), cat:h.cat, auto:true, certain:true});
+  });
+  const thanksgiving = nextThanksgiving();
+  out.push({id:`hol-thanksgiving-${thanksgiving.getFullYear()}`, title:"Thanksgiving", date:toISO(thanksgiving), cat:"thanksgiving", auto:true, certain:true});
   return out;
 }
 
@@ -758,7 +806,7 @@ function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd, onEditEvent, onMo
               onClick={()=>setSelectedDate(dateStr)}>
               <div className="cal-day-num">{dayNum}</div>
               {first && (
-                <div className="cal-note" style={{background:CATS[first.cat].color, opacity:first.auto?0.55:1}}>
+                <div className="cal-note" style={{background:CATS[first.cat].color, opacity:(first.auto && !first.certain)?0.55:1}}>
                   {first.title.split(' \u2014 ')[0].split(' ').slice(0,2).join(' ')}
                 </div>
               )}
@@ -780,7 +828,7 @@ function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd, onEditEvent, onMo
         <div className="agenda-date">{fmtDateShort(selectedDate)}</div>
         {dayEvents.length === 0 && <div className="empty-state">Nothing on this day yet.</div>}
         {dayEvents.length > 0 && <div className="drag-hint">Press and drag a note to move it to another day</div>}
-        {dayEvents.map((e, idx) => e.auto ? (
+        {dayEvents.map((e, idx) => (e.auto && !e.certain) ? (
           <div className="ghost-card" key={e.id} style={{transform:`rotate(${idx%2===0?-1.5:1.5}deg)`}}>
             <span className="card-dot" style={{background:CATS[e.cat].color, opacity:0.5}}></span>
             <div className="card-body">
