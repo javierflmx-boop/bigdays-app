@@ -136,6 +136,8 @@
   .friend-code-label{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(58,30,10,0.6);font-weight:800;margin-bottom:8px;}
   .friend-code-big{font-family:'Baloo 2',sans-serif;font-size:30px;font-weight:800;color:#2E1400;letter-spacing:0.02em;margin-bottom:14px;}
   .friend-code-share{background:rgba(255,255,255,0.65);border:none;border-radius:100px;padding:11px 22px;font-size:12px;font-weight:800;font-family:'Baloo 2',sans-serif;color:#2E1400;cursor:pointer;}
+  .friend-qr{width:150px;height:150px;border-radius:16px;background:#fff;padding:8px;margin:4px auto 6px;display:block;box-shadow:0 6px 16px rgba(58,30,10,0.18);}
+  .friend-qr-hint{font-size:11px;color:rgba(58,30,10,0.55);font-weight:700;margin-bottom:12px;}
   .friend-card{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;border:none;background:var(--card);box-shadow:0 4px 14px rgba(58,46,77,0.08);margin-bottom:10px;}
   .avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2',sans-serif;font-size:16px;color:var(--white);flex-shrink:0;font-weight:800;}
   .friend-name{font-size:15px;color:var(--ink);font-weight:700;}
@@ -532,13 +534,16 @@ function FriendsScreen({me, friendships, onSearchResults, onSendRequest, onRespo
   const [results, setResults] = useState([]);
   const [copied, setCopied] = useState(false);
 
+  const inviteLink = `${window.location.origin}${window.location.pathname}?friend=${me.username}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data=${encodeURIComponent(inviteLink)}`;
+
   async function handleShare(){
-    const text = `Add me on Big Days! My friend code is ${me.username}`;
+    const text = `Add me on Big Days! Tap this to add me: ${inviteLink}`;
     if (navigator.share){
-      try{ await navigator.share({text}); }catch(e){}
+      try{ await navigator.share({text, url: inviteLink}); }catch(e){}
     } else {
       try{
-        await navigator.clipboard.writeText(me.username);
+        await navigator.clipboard.writeText(inviteLink);
         setCopied(true);
         setTimeout(()=>setCopied(false), 1800);
       }catch(e){}
@@ -564,7 +569,9 @@ function FriendsScreen({me, friendships, onSearchResults, onSendRequest, onRespo
       <div className="friend-code-card">
         <div className="friend-code-label">Your friend code</div>
         <div className="friend-code-big">{me.username}</div>
-        <button className="friend-code-share" onClick={handleShare}>{copied ? "Copied!" : "Share my code"}</button>
+        <img className="friend-qr" src={qrSrc} alt="Scan to add me" />
+        <div className="friend-qr-hint">Have a friend scan this with their camera</div>
+        <button className="friend-code-share" onClick={handleShare}>{copied ? "Copied!" : "Share my invite link"}</button>
       </div>
       <div className="field-label">Add a friend by their code</div>
       <input className="field-input" placeholder="Search username..." value={query} onChange={e=>runSearch(e.target.value)} />
@@ -944,6 +951,28 @@ function App(){
       .select('*, requester:requester_id(id,username,display_name,avatar_color), addressee:addressee_id(id,username,display_name,avatar_color)').single();
     if (data) setFriendships(prev => [...prev, data]);
   }
+
+  // If this device was opened via an invite link (?friend=username), auto-send a friend request once logged in.
+  useEffect(() => {
+    if (!me) return;
+    const params = new URLSearchParams(window.location.search);
+    const inviteCode = params.get('friend');
+    if (!inviteCode) return;
+    const uname = slugUsername(inviteCode);
+    if (uname === me.username) {
+      const url = new URL(window.location); url.searchParams.delete('friend'); window.history.replaceState({}, '', url);
+      return;
+    }
+    (async () => {
+      const {data: target} = await supabase.from('profiles').select('id').eq('username', uname).maybeSingle();
+      if (target){
+        const already = friendships.some(f => (f.requester_id===me.id && f.addressee_id===target.id) || (f.addressee_id===me.id && f.requester_id===target.id));
+        if (!already) await handleSendRequest(target.id);
+      }
+      const url = new URL(window.location); url.searchParams.delete('friend'); window.history.replaceState({}, '', url);
+    })();
+  }, [me]);
+
   async function handleRespond(friendshipId){
     await supabase.from('friendships').update({status:'accepted'}).eq('id', friendshipId);
     setFriendships(prev => prev.map(f => f.id===friendshipId ? {...f, status:'accepted'} : f));
