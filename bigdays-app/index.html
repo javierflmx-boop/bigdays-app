@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Big Days">
-<meta name="theme-color" content="#0A0A0A">
+<meta name="theme-color" content="#FFB627">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Big Days</title>
 <link rel="manifest" href="manifest.json">
@@ -124,6 +124,10 @@
   .sheet-actions .btn{flex:1;}
 
   .friends-wrap{padding:8px 24px 120px;}
+  .friend-code-card{background:linear-gradient(135deg, #FF9EC4, #FFB627 65%, #FFD466);border-radius:24px;padding:24px;text-align:center;margin-bottom:20px;box-shadow:0 10px 26px rgba(255,149,0,0.22);}
+  .friend-code-label{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(58,30,10,0.6);font-weight:800;margin-bottom:8px;}
+  .friend-code-big{font-family:'Baloo 2',sans-serif;font-size:30px;font-weight:800;color:#2E1400;letter-spacing:0.02em;margin-bottom:14px;}
+  .friend-code-share{background:rgba(255,255,255,0.65);border:none;border-radius:100px;padding:11px 22px;font-size:12px;font-weight:800;font-family:'Baloo 2',sans-serif;color:#2E1400;cursor:pointer;}
   .friend-card{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;border:none;background:var(--card);box-shadow:0 4px 14px rgba(58,46,77,0.08);margin-bottom:10px;}
   .avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2',sans-serif;font-size:16px;color:var(--white);flex-shrink:0;font-weight:800;}
   .friend-name{font-size:15px;color:var(--ink);font-weight:700;}
@@ -393,12 +397,18 @@ function AuthScreen(){
   );
 }
 
-function AddEventSheet({onClose, onSave, prefill}){
-  const [form, setForm] = useState({title:'', date:prefill?.date || '', cat:prefill?.cat || 'birthday', visibility:'private'});
+function AddEventSheet({onClose, onSave, prefill, editingEvent, onDelete}){
+  const isEditing = !!editingEvent;
+  const [form, setForm] = useState({
+    title: editingEvent?.title || '',
+    date: editingEvent?.event_date || prefill?.date || '',
+    cat: editingEvent?.category || prefill?.cat || 'birthday',
+    visibility: editingEvent?.visibility || 'private',
+  });
   return (
     <div className="sheet-overlay" onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
       <div className="sheet">
-        <div className="sheet-title">New big day</div>
+        <div className="sheet-title">{isEditing ? "Edit this day" : "New big day"}</div>
         <div className="sheet-sub">Birthdays, Disney Day, pool day \u2014 anything worth counting down to.</div>
 
         <div className="field-label">What is it?</div>
@@ -422,9 +432,15 @@ function AddEventSheet({onClose, onSave, prefill}){
           <div className={"vis-pick" + (form.visibility==='friends'?' sel':'')} onClick={()=>setForm({...form, visibility:'friends'})}>My friends too</div>
         </div>
 
+        {isEditing && (
+          <div className="hint" style={{textAlign:'center', marginTop:14, cursor:'pointer', color:'#E0457B'}} onClick={()=>onDelete(editingEvent.id)}>
+            Delete this day
+          </div>
+        )}
+
         <div className="sheet-actions">
           <button className="btn btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="btn btn-save" onClick={()=>{ if(form.title.trim() && form.date) onSave(form); }}>Save</button>
+          <button className="btn btn-save" onClick={()=>{ if(form.title.trim() && form.date) onSave(form, editingEvent?.id); }}>{isEditing ? "Save changes" : "Save"}</button>
         </div>
       </div>
     </div>
@@ -434,6 +450,20 @@ function AddEventSheet({onClose, onSave, prefill}){
 function FriendsScreen({me, friendships, onSearchResults, onSendRequest, onRespond}){
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [copied, setCopied] = useState(false);
+
+  async function handleShare(){
+    const text = `Add me on Big Days! My friend code is ${me.username}`;
+    if (navigator.share){
+      try{ await navigator.share({text}); }catch(e){}
+    } else {
+      try{
+        await navigator.clipboard.writeText(me.username);
+        setCopied(true);
+        setTimeout(()=>setCopied(false), 1800);
+      }catch(e){}
+    }
+  }
 
   async function runSearch(q){
     setQuery(q);
@@ -451,11 +481,10 @@ function FriendsScreen({me, friendships, onSearchResults, onSendRequest, onRespo
 
   return (
     <div className="friends-wrap">
-      <div className="card" style={{marginBottom:18, background:'rgba(245,166,35,0.06)', borderColor:'rgba(245,166,35,0.25)'}}>
-        <div style={{flex:1}}>
-          <div style={{fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(245,240,232,0.5)', marginBottom:4}}>Your friend code</div>
-          <div style={{fontFamily:'Baloo 2, sans-serif', fontWeight:800, fontSize:20, color:'var(--sun-deep)'}}>{me.username}</div>
-        </div>
+      <div className="friend-code-card">
+        <div className="friend-code-label">Your friend code</div>
+        <div className="friend-code-big">{me.username}</div>
+        <button className="friend-code-share" onClick={handleShare}>{copied ? "Copied!" : "Share my code"}</button>
       </div>
       <div className="field-label">Add a friend by their code</div>
       <input className="field-input" placeholder="Search username..." value={query} onChange={e=>runSearch(e.target.value)} />
@@ -544,7 +573,7 @@ function Confetti({triggerKey}){
   );
 }
 
-function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd}){
+function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd, onEditEvent}){
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
   const [selectedDate, setSelectedDate] = useState(todayISO());
 
@@ -623,7 +652,9 @@ function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd}){
             <button className="confirm-btn" onClick={()=>onConfirmAuto(e)}>Confirm</button>
           </div>
         ) : (
-          <div className="card note-card" key={e.id} style={{transform:`rotate(${idx%2===0?-1.5:1.5}deg)`, marginTop:idx>0?18:0}}>
+          <div className="card note-card" key={e.id}
+            onClick={()=>{ if(e.isMine) onEditEvent(e.dbId); }}
+            style={{transform:`rotate(${idx%2===0?-1.5:1.5}deg)`, marginTop:idx>0?18:0, cursor:e.isMine?'pointer':'default'}}>
             <span className="card-dot" style={{background:CATS[e.cat].color}}></span>
             <div className="card-body">
               <div className="card-title">{e.title}</div>
@@ -646,9 +677,23 @@ function App(){
   const [filter, setFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [addPrefill, setAddPrefill] = useState(null);
+  const [editingEvent, setEditingEvent] = useState(null);
   function openQuickAdd(cat, date){
     setAddPrefill({cat, date});
     setShowAdd(true);
+  }
+  function openEditEvent(rawEvent){
+    setEditingEvent(rawEvent);
+    setShowAdd(true);
+  }
+  function editById(id){
+    const raw = events.find(e => e.id === id);
+    if (raw) openEditEvent(raw);
+  }
+  function closeAddSheet(){
+    setShowAdd(false);
+    setAddPrefill(null);
+    setEditingEvent(null);
   }
   const [editMode, setEditMode] = useState(false);
   const [confirmedAutoIds, setConfirmedAutoIds] = useState(() => {
@@ -656,7 +701,27 @@ function App(){
   });
   const [confettiKey, setConfettiKey] = useState(0);
   const [firedTodayFor, setFiredTodayFor] = useState(null);
-  function fireConfetti(){ setConfettiKey(k => k + 1); }
+  function playChime(){
+    try{
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new Ctx();
+      const notes = [523.25, 659.25, 783.99]; // C5 E5 G5
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const start = ctx.currentTime + i * 0.09;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.18, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.4);
+      });
+    }catch(e){}
+  }
+  function fireConfetti(){ setConfettiKey(k => k + 1); playChime(); }
 
   const autoEventsRaw = useMemo(() => generateAutoEvents(6), []);
   const autoEvents = useMemo(() => autoEventsRaw.filter(e => !confirmedAutoIds.includes(e.id)), [autoEventsRaw, confirmedAutoIds]);
@@ -683,13 +748,19 @@ function App(){
     return () => sub.subscription.unsubscribe();
   }, [loadEverything]);
 
-  async function handleAddEvent(form){
-    const {data, error} = await supabase.from('events').insert({
-      owner_id: me.id, title: form.title.trim(), event_date: form.date, category: form.cat, visibility: form.visibility
-    }).select('*, profiles:owner_id(display_name)').single();
-    if (!error && data) { setEvents(prev => [...prev, data]); fireConfetti(); }
-    setShowAdd(false);
-    setAddPrefill(null);
+  async function handleAddEvent(form, editingId){
+    if (editingId){
+      const {data, error} = await supabase.from('events').update({
+        title: form.title.trim(), event_date: form.date, category: form.cat, visibility: form.visibility
+      }).eq('id', editingId).select('*, profiles:owner_id(display_name)').single();
+      if (!error && data) setEvents(prev => prev.map(e => e.id === editingId ? data : e));
+    } else {
+      const {data, error} = await supabase.from('events').insert({
+        owner_id: me.id, title: form.title.trim(), event_date: form.date, category: form.cat, visibility: form.visibility
+      }).select('*, profiles:owner_id(display_name)').single();
+      if (!error && data) { setEvents(prev => [...prev, data]); fireConfetti(); }
+    }
+    closeAddSheet();
   }
   async function handleConfirmAuto(autoEvent){
     const cleanTitle = autoEvent.title.replace(/ \u2014 check this month's date| \u2014 check exact dates/g, '');
@@ -704,6 +775,7 @@ function App(){
   async function handleRemoveEvent(id){
     await supabase.from('events').delete().eq('id', id);
     setEvents(prev => prev.filter(e => e.id !== id));
+    closeAddSheet();
   }
   async function handleSendRequest(targetId){
     const {data} = await supabase.from('friendships').insert({requester_id: me.id, addressee_id: targetId, status:'pending'})
@@ -772,7 +844,7 @@ function App(){
           </div>
 
           {dayMode === 'grid' ? (
-            <CalendarScreen allEvents={allEventsForCalendar} onConfirmAuto={handleConfirmAuto} onQuickAdd={openQuickAdd} />
+            <CalendarScreen allEvents={allEventsForCalendar} onConfirmAuto={handleConfirmAuto} onQuickAdd={openQuickAdd} onEditEvent={editById} />
           ) : (
           <React.Fragment>
           <div className={"hero" + (isToday ? " today-hero" : "")}>
@@ -807,13 +879,13 @@ function App(){
             {rest.map(e => {
               const d = daysUntil(e.date);
               return (
-                <div className="card" key={e.id}>
+                <div className="card" key={e.id} onClick={()=>{ if(e.isMine && !editMode) editById(e.dbId); }} style={e.isMine && !editMode ? {cursor:'pointer'} : {}}>
                   <span className="card-dot" style={{background:CATS[e.cat].color}}></span>
                   <div className="card-body">
                     <div className="card-title">{e.title}</div>
                     <div className="card-date">
                       {fmtDate(e.date)}
-                      {e.link && <a className="card-link" href={e.link} target="_blank" rel="noopener noreferrer"> &middot; Register</a>}
+                      {e.link && <a className="card-link" href={e.link} target="_blank" rel="noopener noreferrer" onClick={ev=>ev.stopPropagation()}> &middot; Register</a>}
                     </div>
                     {!e.isMine && e.ownerName && <div className="card-owner">{e.ownerName}'s day</div>}
                   </div>
@@ -821,7 +893,7 @@ function App(){
                     <div className="card-days">{d}</div>
                     <div className="card-days-label">day{d===1?'':'s'}</div>
                   </div>
-                  {editMode && e.isMine && <button className="card-del" onClick={()=>handleRemoveEvent(e.dbId)}>&times;</button>}
+                  {editMode && e.isMine && <button className="card-del" onClick={(ev)=>{ev.stopPropagation(); handleRemoveEvent(e.dbId);}}>&times;</button>}
                 </div>
               );
             })}
@@ -845,7 +917,7 @@ function App(){
         </div>
       </div>
 
-      {showAdd && <AddEventSheet onClose={()=>{setShowAdd(false); setAddPrefill(null);}} onSave={handleAddEvent} prefill={addPrefill} />}
+      {showAdd && <AddEventSheet onClose={closeAddSheet} onSave={handleAddEvent} prefill={addPrefill} editingEvent={editingEvent} onDelete={handleRemoveEvent} />}
     </React.Fragment>
   );
 }
