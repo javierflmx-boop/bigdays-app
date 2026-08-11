@@ -154,6 +154,10 @@
   .cal-note::before{content:'';position:absolute;top:-3px;left:50%;transform:translateX(-50%) rotate(-4deg);width:14px;height:6px;background:rgba(255,255,255,0.55);border-radius:1px;}
   .cal-more{margin-top:2px;font-size:7px;font-weight:800;color:rgba(58,46,77,0.4);}
 
+  .quick-add-row{display:flex;gap:8px;overflow-x:auto;padding:14px 0 4px;scrollbar-width:none;}
+  .quick-add-row::-webkit-scrollbar{display:none;}
+  .quick-chip{flex-shrink:0;padding:10px 16px;border-radius:100px;font-size:12px;font-weight:800;font-family:'Baloo 2',sans-serif;color:#3A2A00;cursor:pointer;box-shadow:0 2px 6px rgba(58,46,77,0.1);}
+
   .agenda{margin-top:22px;}
   .agenda-date{font-family:'Baloo 2',sans-serif;font-size:19px;font-weight:800;color:var(--ink);margin-bottom:12px;}
   .note-card{position:relative;box-shadow:0 6px 14px rgba(58,46,77,0.14);}
@@ -227,14 +231,6 @@ const AVATAR_COLORS = ["#F5A623","#7C9885","#E8927C","#6FA8B5","#C9A15A","#B8A8D
 
 const HD_LINK = "https://www.homedepot.com/workshops/kids";
 const LOWES_LINK = "https://www.lowes.com/diy-projects-and-ideas/workshops";
-const MICHAELS_LINK = "https://www.michaels.com/kids-club";
-const LEGO_LINK = "https://www.lego.com/en-us/stores/events";
-const BASSPRO_LINK = "https://www.basspro.com/shop/en/family-events";
-const BASSPRO_SEASONS = [
-  {title:"Bass Pro Shops Spring Classic \u2014 free kids fishing weekend", month:2, day:15},
-  {title:"Bass Pro Shops Family Summer Event \u2014 free kids workshops", month:5, day:22},
-  {title:"Bass Pro Shops Fall Hunting Classic \u2014 free youth event", month:7, day:25},
-];
 
 function firstSaturday(year, monthIndex0){
   const d = new Date(year, monthIndex0, 1);
@@ -244,17 +240,6 @@ function firstSaturday(year, monthIndex0){
 function thirdSaturday(year, monthIndex0){
   const d = firstSaturday(year, monthIndex0);
   d.setDate(d.getDate() + 14);
-  return d;
-}
-function nextSunday(fromDate){
-  const d = new Date(fromDate);
-  d.setDate(d.getDate() + ((7 - d.getDay()) % 7 || 7));
-  return d;
-}
-function nextOccurrence(month, day){
-  const now = new Date(); now.setHours(0,0,0,0);
-  let d = new Date(now.getFullYear(), month, day);
-  if (d < now) d = new Date(now.getFullYear() + 1, month, day);
   return d;
 }
 function toISO(d){ return d.toISOString().slice(0,10); }
@@ -295,19 +280,7 @@ function generateAutoEvents(monthsAhead = 6){
     out.push({id:`hd-${hd.getFullYear()}-${hd.getMonth()}`, title:"Home Depot Kids Workshop", date:toISO(hd), cat:"homedepot", link:HD_LINK, auto:true});
     const lw = thirdSaturday(y, m);
     out.push({id:`lw-${lw.getFullYear()}-${lw.getMonth()}`, title:"Lowe's Kids Workshop", date:toISO(lw), cat:"lowes", link:LOWES_LINK, auto:true});
-    const lg = new Date(y, m, 2);
-    out.push({id:`lg-${lg.getFullYear()}-${lg.getMonth()}`, title:"LEGO Store Mini Build \u2014 check this month's date", date:toISO(lg), cat:"build", link:LEGO_LINK, auto:true});
   }
-  let cursor = new Date();
-  for (let w = 0; w < 8; w++){
-    const sun = nextSunday(cursor);
-    out.push({id:`mi-${toISO(sun)}`, title:"Michaels Kids Club \u2014 craft day", date:toISO(sun), cat:"craft", link:MICHAELS_LINK, auto:true});
-    cursor = sun;
-  }
-  BASSPRO_SEASONS.forEach(s => {
-    const d = nextOccurrence(s.month, s.day);
-    out.push({id:`bp-${d.getFullYear()}-${s.month}`, title:s.title + " \u2014 check exact dates", date:toISO(d), cat:"outdoor", link:BASSPRO_LINK, auto:true});
-  });
   return out;
 }
 
@@ -420,8 +393,8 @@ function AuthScreen(){
   );
 }
 
-function AddEventSheet({onClose, onSave}){
-  const [form, setForm] = useState({title:'', date:'', cat:'birthday', visibility:'private'});
+function AddEventSheet({onClose, onSave, prefill}){
+  const [form, setForm] = useState({title:'', date:prefill?.date || '', cat:prefill?.cat || 'birthday', visibility:'private'});
   return (
     <div className="sheet-overlay" onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
       <div className="sheet">
@@ -571,7 +544,7 @@ function Confetti({triggerKey}){
   );
 }
 
-function CalendarScreen({allEvents, onConfirmAuto}){
+function CalendarScreen({allEvents, onConfirmAuto, onQuickAdd}){
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); d.setDate(1); return d; });
   const [selectedDate, setSelectedDate] = useState(todayISO());
 
@@ -630,6 +603,13 @@ function CalendarScreen({allEvents, onConfirmAuto}){
       </div>
       </div>
 
+      <div className="quick-add-row">
+        <div className="quick-chip" style={{background:PASTELS.park}} onClick={()=>onQuickAdd('park', selectedDate)}>+ Park Day</div>
+        <div className="quick-chip" style={{background:PASTELS.pool}} onClick={()=>onQuickAdd('pool', selectedDate)}>+ Pool Day</div>
+        <div className="quick-chip" style={{background:PASTELS.birthday}} onClick={()=>onQuickAdd('birthday', selectedDate)}>+ Birthday</div>
+        <div className="quick-chip" style={{background:PASTELS.trip}} onClick={()=>onQuickAdd('trip', selectedDate)}>+ Trip</div>
+      </div>
+
       <div className="agenda">
         <div className="agenda-date">{fmtDateShort(selectedDate)}</div>
         {dayEvents.length === 0 && <div className="empty-state">Nothing on this day yet.</div>}
@@ -665,6 +645,11 @@ function App(){
   const [dayMode, setDayMode] = useState('grid');
   const [filter, setFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
+  const [addPrefill, setAddPrefill] = useState(null);
+  function openQuickAdd(cat, date){
+    setAddPrefill({cat, date});
+    setShowAdd(true);
+  }
   const [editMode, setEditMode] = useState(false);
   const [confirmedAutoIds, setConfirmedAutoIds] = useState(() => {
     try{ return JSON.parse(localStorage.getItem('bigdays_confirmed_auto') || '[]'); }catch(e){ return []; }
@@ -704,6 +689,7 @@ function App(){
     }).select('*, profiles:owner_id(display_name)').single();
     if (!error && data) { setEvents(prev => [...prev, data]); fireConfetti(); }
     setShowAdd(false);
+    setAddPrefill(null);
   }
   async function handleConfirmAuto(autoEvent){
     const cleanTitle = autoEvent.title.replace(/ \u2014 check this month's date| \u2014 check exact dates/g, '');
@@ -786,7 +772,7 @@ function App(){
           </div>
 
           {dayMode === 'grid' ? (
-            <CalendarScreen allEvents={allEventsForCalendar} onConfirmAuto={handleConfirmAuto} />
+            <CalendarScreen allEvents={allEventsForCalendar} onConfirmAuto={handleConfirmAuto} onQuickAdd={openQuickAdd} />
           ) : (
           <React.Fragment>
           <div className={"hero" + (isToday ? " today-hero" : "")}>
@@ -859,7 +845,7 @@ function App(){
         </div>
       </div>
 
-      {showAdd && <AddEventSheet onClose={()=>setShowAdd(false)} onSave={handleAddEvent} />}
+      {showAdd && <AddEventSheet onClose={()=>{setShowAdd(false); setAddPrefill(null);}} onSave={handleAddEvent} prefill={addPrefill} />}
     </React.Fragment>
   );
 }
